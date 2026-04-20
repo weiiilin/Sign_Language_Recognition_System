@@ -35,7 +35,7 @@ export default defineNuxtConfig({
       ]
     },
     workbox: {
-      globPatterns: ['**/*.{js,css,html,png,svg,wasm,onnx}'],
+      globPatterns: ['**/*.{js,css,html,png,svg,wasm,onnx,onnx.data}'],
 
       runtimeCaching: [
         {
