@@ -67,6 +67,6 @@ const AIWorker = {
     }
   }
 }
-
+// 暴露 Worker API 給主線程使用
 Comlink.expose(AIWorker)
 export type AIWorkerType = typeof AIWorker

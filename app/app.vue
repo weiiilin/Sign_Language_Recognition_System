@@ -141,7 +141,7 @@ const detectFrame = () => {
 
   renderLoop()
 }
-
+// 啟動系統的流程：請求相機權限 -> 初始化 Worker 和模型 -> 啟動偵測循環
 const startSystem = async () => {
   if (isStarting.value) return
   isStarting.value = true
