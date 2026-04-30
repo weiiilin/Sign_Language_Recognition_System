@@ -12,7 +12,6 @@ export default defineNuxtConfig({
     },
     plugins: [
       // require('@vitejs/plugin-basic-ssl')() // 使用 ngrok 時請關閉本地 SSL，交由 ngrok 處理 HTTPS
-      
     ],
     optimizeDeps: {
       include: [
