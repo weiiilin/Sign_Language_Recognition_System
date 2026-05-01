@@ -4,7 +4,7 @@ import * as ort from 'onnxruntime-web';
 ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/';
 
 let session: ort.InferenceSession | null = null
-let labels: string[] = ['吃', '我', '你']
+let labels: string[] = ['吃飯', '我', '你']
 
 const AIWorker = {
   async loadModel(modelUrl: string) {
@@ -41,29 +41,39 @@ const AIWorker = {
       const outputName = session.outputNames[0]
       if (!inputName || !outputName) return '模型輸入輸出名稱異常'
 
+      if (landmarks.length !== 3780) {
+        return `資料長度不符，預期 3780，實際收到 ${landmarks.length}`;
+      }
+      const inputData = new Float32Array(landmarks);
       // 將 MediaPipe 傳來的節點轉換為 ONNX 需要的 Tensor (假設模型輸入為 1x63 的 Float32Array)
-      const inputTensor = new ort.Tensor('float32', new Float32Array(landmarks), [1, landmarks.length])
+      const inputTensor = new ort.Tensor('float32', inputData, [1, 3780]);
+
       const feeds: Record<string, ort.Tensor> = {}
       feeds[inputName] = inputTensor
 
       const results = await session.run(feeds)
       const outputTensor = results[outputName]
       if (!outputTensor) return '模型輸出異常'
+
       const output = outputTensor.data as Float32Array
+
       if (output.length === 0) return '模型輸出為空'
 
       // 簡單的 ArgMax 找出機率最高的類別 (需對應你訓練的 10 個手語標籤)
-      let maxIndex = 0
-      for (let i = 1; i < output.length; i++) {
-        const currentScore = output[i] ?? Number.NEGATIVE_INFINITY
-        const maxScore = output[maxIndex] ?? Number.NEGATIVE_INFINITY
-        if (currentScore > maxScore) maxIndex = i
+      let maxIndex = 0;
+      let maxScore:number = -Infinity;
+      for (let i = 0; i < output.length; i++) {
+        const score = output[i];
+        if (score! > maxScore) {
+          maxScore = score!;
+          maxIndex = i;
+        }
       }
 
       return labels[maxIndex] ?? '未知類別'
     } catch (e) {
       console.error('[Worker] 推論異常:', e);
-      return '辨識錯誤'
+      return `辨識錯誤，${e instanceof Error ? e.message : String(e)}`;
     }
   }
 }

@@ -11,9 +11,9 @@
   ],
   "input_shape": [
     30,
-    63
+    126
   ],
-  "flattened_input_dim": 1890,
+  "flattened_input_dim": 3780,
   "model_file": "model.onnx",
   "normalization": "embedded_in_model"
 }
