@@ -2,11 +2,13 @@
   "classes": [
     "eat",
     "me",
+    "yon",
     "you"
   ],
   "display_names": [
     "吃",
     "我",
+    "有沒有",
     "你"
   ],
   "input_shape": [

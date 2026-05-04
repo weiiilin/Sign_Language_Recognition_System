@@ -4,7 +4,7 @@ import * as ort from 'onnxruntime-web';
 ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/';
 
 let session: ort.InferenceSession | null = null
-let labels: string[] = ['吃飯', '我', '你']
+let labels: string[] = ['吃飯', '我', '你', '有沒有']
 
 const AIWorker = {
   async loadModel(modelUrl: string) {
