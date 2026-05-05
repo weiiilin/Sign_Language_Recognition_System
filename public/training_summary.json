@@ -5,24 +5,26 @@
   "learning_rate": 0.001,
   "weight_decay": 0.0001,
   "patience": 10,
-  "train_samples": 10,
-  "val_samples": 2,
-  "test_samples": 3,
-  "test_loss": 0.5647944808006287,
-  "test_accuracy": 0.6666666666666666,
+  "train_samples": 77,
+  "val_samples": 19,
+  "test_samples": 24,
+  "test_loss": 0.3052028566598892,
+  "test_accuracy": 0.9166666666666666,
   "classes": [
     "eat",
     "me",
+    "yon",
     "you"
   ],
   "display_names": [
     "吃",
     "我",
+    "有沒有",
     "你"
   ],
   "input_shape": [
     30,
-    63
+    126
   ],
-  "flattened_input_dim": 1890
+  "flattened_input_dim": 3780
 }
