@@ -30,11 +30,6 @@ const showDetail = ref(false)
 </script>
 
 <style scoped>
-.page {
-  min-height: 100vh;
-  background: #f5f5fa;
-  padding: 0 34px 120px;
-}
 
 .header {
   position: fixed;
@@ -93,24 +88,6 @@ const showDetail = ref(false)
   border-radius: 999px;
   padding: 8px 20px;
   font-size: 17px;
-}
-
-.pill {
-  margin: 12px auto;
-  display: flex;              
-  align-items: center;
-  justify-content: center;
-  width: fit-content;
-  background: #dedede;
-  color: #0078df;
-  border-radius: 999px;
-  padding: 8px 28px;
-  font-size: 17px;
-}
-
-.pill span {
-  padding: 0 16px;
-  font-size: 28px;
 }
 
 .result-box {

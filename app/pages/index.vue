@@ -10,8 +10,10 @@ const showDetail = ref(false)
 <template>
   <main class="page">
 
-    <header class="top">
-      <button @click="showSetting = true">☰</button>
+    <header class="top-bar">
+      <button class="setting" @click="showSetting = true">
+        ☰
+      </button>
       <input placeholder="搜尋" />
     </header>
 
@@ -44,18 +46,8 @@ const showDetail = ref(false)
 </template>
 
 <style scoped>
-.page {
-  min-height: 100vh;
-  background: #f6f7fb;
-  padding: 24px;
-}
 
-.top {
-  display: flex;
-  gap: 10px;
-}
-
-.top input {
+.top-bar input {
   flex: 1;
   border: none;
   border-radius: 999px;
@@ -80,23 +72,7 @@ const showDetail = ref(false)
   border-radius: 999px;
 }
 
-.pill {
-  margin: 12px auto;
-  background: #d8ecff;
-  color: #2488e8;
-  padding: 6px 12px;
-  border-radius: 999px;
-  width: fit-content;
-}
-
-.card {
-  margin-top: 16px;
-  background: white;
-  border-radius: 20px;
-  padding: 20px;
-}
-
 .main {
-  font-size: 20px;
+  font-size: 12px;
 }
 </style>

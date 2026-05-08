@@ -1,23 +1,28 @@
 <template>
   <main class="page">
-
-    <section class="camera">
-      <button class="setting">☰</button>
-
+    <header class="top-bar">
+      <button class="setting" @click="showSetting = true">
+        ☰
+      </button>
+      <div class="logo">
+        Sign Language 
+        Recognition System
+      </div>
+      
+    </header>
+  <section class="camera">
       <video ref="videoRef" autoplay playsinline muted></video>
       <canvas ref="canvasRef"></canvas>
-
-      <button class="start-btn" :disabled="isStarting" @click="startSystem">
+      
+    </section>
+    <button class="start-btn" :disabled="isStarting" @click="startSystem">
         {{ isStarting ? '系統啟動中...' : '重新啟動系統' }}
       </button>
-    </section>
-
     <div class="pill">
       台灣手語 → 中文（繁體）
     </div>
 
     <BottomNav />
-
     <section class="card" @click="showDetail = true">
       <p>辨識結果：{{ signStore.currentSign || '尚未辨識' }}</p>
       <span>{{ systemStatus }}</span>
@@ -222,13 +227,9 @@ onUnmounted(() => {
 })
 </script>
 <style scoped>
-.page {
-  min-height: 100vh;
-  background: white;
-  padding: 20px;
-}
 
 .camera {
+  margin-top: 20px;
   height: 400px;
   background: #eee;
   border-radius: 24px;
@@ -246,35 +247,4 @@ canvas {
   transform: scaleX(-1);
 }
 
-.setting {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  z-index: 3;
-}
-
-.start-btn {
-  position: absolute;
-  background: #1e8cff;
-  color: white;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.pill {
-  margin: 12px auto;
-  background: #d8ecff;
-  color: #2488e8;
-  padding: 6px 12px;
-  border-radius: 999px;
-  width: fit-content;
-}
-
-.card {
-  margin-top: 20px;
-  padding: 16px;
-  background: #f5f5f5;
-  border-radius: 16px;
-}
 </style>
