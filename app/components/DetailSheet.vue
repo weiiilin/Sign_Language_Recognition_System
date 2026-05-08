@@ -2,14 +2,34 @@
   <div class="overlay" @click.self="$emit('close')">
     <section class="sheet">
       <div class="handle"></div>
+
       <h2>翻譯細項</h2>
-      <p class="blue">查詢：不好吃</p>
-      <p>拆解 → 吃 + 爛。</p>
+
+      <p class="blue">查詢：{{ word }}</p>
+      <p>拆解 → {{ breakdown }}</p>
+
       <p class="blue">手語分解動作</p>
-      <p>手型：B 手型<br />位置：胸前<br />動作：向外移動</p>
+      <p v-html="detail"></p>
     </section>
   </div>
 </template>
+
+<script setup>
+defineProps({
+  word: {
+    type: String,
+    default: '尚未辨識'
+  },
+  breakdown: {
+    type: String,
+    default: '尚無拆解資料'
+  },
+  detail: {
+    type: String,
+    default: '尚無動作說明'
+  }
+})
+</script>
 
 <style scoped>
 .overlay {

@@ -29,9 +29,13 @@
     </section>
 
      <SettingModal v-if="showSetting" @close="showSetting = false" />
-    <DetailSheet v-if="showDetail" @close="showDetail = false" />
-
-
+    <DetailSheet
+      v-if="showDetail"
+      @close="showDetail = false"
+      :word="signStore.currentSign || '尚未辨識'"
+      breakdown="依辨識結果顯示拆解"
+      detail="手型：待補<br />位置：待補<br />動作：待補"
+    />
   </main>
 </template>
 
