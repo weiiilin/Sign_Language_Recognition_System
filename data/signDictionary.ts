@@ -63,3 +63,4 @@ export const signDictionary = {
       '/position/4.1身前.jpg'
     ]
 }
+}

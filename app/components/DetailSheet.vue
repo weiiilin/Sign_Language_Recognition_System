@@ -5,30 +5,62 @@
 
       <h2>翻譯細項</h2>
 
-      <p class="blue">查詢：{{ word }}</p>
-      <p>拆解 → {{ breakdown }}</p>
+      <p class="blue">查詢：{{ props.word }}</p>
+
+      <p>
+        拆解：
+        {{ detail?.breakdown?.join(' + ') }}
+      </p>
 
       <p class="blue">手語分解動作</p>
-      <p v-html="detail"></p>
+
+      <p>
+        手型：{{ detail?.handshape?.join(', ') }}
+      </p>
+      <img
+        v-for="img in detail?.ＨandshapeImage"
+        :key="img"
+        :src="img"
+        class="image"
+      />
+      <p>
+        位置：{{ detail?.location?.join(', ') }}
+      </p>
+      <img
+        v-for="img in detail?.positionImage"
+        :key="img"
+        :src="img"
+        class="image"
+      />
+
+      <p>
+        動作：{{ detail?.movement }}
+      </p>
+      <video
+        v-if="detail?.video"
+        :src="detail.video"
+        controls
+        class="video"
+      />
+      
+
     </section>
   </div>
 </template>
 
 <script setup>
-defineProps({
+import { signDictionary } from '../../data/signDictionary'
+
+const props = defineProps({
   word: {
     type: String,
-    default: '尚未辨識'
-  },
-  breakdown: {
-    type: String,
-    default: '尚無拆解資料'
-  },
-  detail: {
-    type: String,
-    default: '尚無動作說明'
+    default: ''
   }
 })
+const detail = computed(() => {
+  return signDictionary[props.word] || null
+})
+
 </script>
 
 <style scoped>
@@ -56,5 +88,31 @@ defineProps({
 }
 .blue {
   color: #1e8cff;
+}
+.video {
+  width: 100%;
+  max-height: 220px;
+
+  border-radius: 16px;
+
+  object-fit: cover;
+
+  margin-top: 12px;
+}
+
+.image {
+  width: 100%;
+  max-width: 140px;
+
+  border-radius: 12px;
+
+  object-fit: contain;
+
+  margin-top: 10px;
+}
+.image-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 </style>
