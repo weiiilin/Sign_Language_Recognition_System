@@ -3,17 +3,14 @@
     <section class="sheet">
       <div class="handle"></div>
 
-      <h2>翻譯細項</h2>
-
       <p class="blue">查詢：{{ props.word }}</p>
-
       <p>
         拆解：
-        {{ detail?.breakdown?.join(' + ') }}
       </p>
 
       <p class="blue">手語分解動作</p>
-
+      <div class="detail-grid">
+        <div class="detail-item">
       <p>
         手型：{{ detail?.handshape?.join(', ') }}
       </p>
@@ -23,6 +20,8 @@
         :src="img"
         class="image"
       />
+        </div>
+        <div class="detail-item">
       <p>
         位置：{{ detail?.location?.join(', ') }}
       </p>
@@ -32,7 +31,8 @@
         :src="img"
         class="image"
       />
-
+        </div>
+      </div>
       <p>
         動作：{{ detail?.movement }}
       </p>
@@ -101,8 +101,9 @@ const detail = computed(() => {
 }
 
 .image {
-  width: 100%;
-  max-width: 140px;
+  width: 70px;
+  height: 70px;
+
 
   border-radius: 12px;
 
@@ -115,4 +116,18 @@ const detail = computed(() => {
   gap: 12px;
   flex-wrap: wrap;
 }
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.detail-item h3 {
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+
 </style>
