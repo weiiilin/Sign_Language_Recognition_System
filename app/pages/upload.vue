@@ -4,10 +4,31 @@
       <h1>手語翻譯LOGO</h1>
       <button @click="showSetting = true">☰</button>
     </header>
-  <div class="content"></div>
-    <section class="upload-box">
-      <button class="upload-btn">上傳影片</button>
-    </section>
+<section class="upload-box">
+  <input
+    ref="fileInput"
+    type="file"
+    accept="video/*"
+    hidden
+    @change="handleVideoUpload"
+  />
+
+  <video
+    v-if="videoUrl"
+    :src="videoUrl"
+    controls
+    playsinline
+    class="upload-video"
+  />
+
+  <button
+    v-else
+    class="upload-btn"
+    @click="fileInput?.click()"
+  >
+    上傳影片
+  </button>
+</section>
 
     <div class="pill">
       台灣手語<span>→</span> 中文（繁體）
@@ -27,6 +48,16 @@
 <script setup>
 const showSetting = ref(false)
 const showDetail = ref(false)
+
+const fileInput = ref(null)
+const videoUrl = ref('')
+
+const handleVideoUpload = (event) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  videoUrl.value = URL.createObjectURL(file)
+}
 </script>
 
 <style scoped>
@@ -109,9 +140,13 @@ const showDetail = ref(false)
 .page {
   min-height: 100vh;
   background: #f5f5fa;
-  padding: 0 34px 120px;
-
-  padding-top: 180px;
+  padding: 90px 34px 120px;
+}
+.upload-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 26px;
 }
 
 @media (max-width: 430px) {
