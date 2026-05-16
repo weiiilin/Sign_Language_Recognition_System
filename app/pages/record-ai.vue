@@ -49,13 +49,37 @@ import { useSignStore } from '~/../stores/signStore'
 import * as Comlink from 'comlink'
 import type { AIWorkerType } from '~/../workers/inference.worker'
 
-// --- 1. 全域變數與緩衝區設定 ---
-const SEQUENCE_LENGTH = 30; // 模型要 30 幀 (30 * 126 = 3780)
-let frameBuffer: number[][] = []; // 用來存最近 30 幀的資料
-
 const videoRef = ref<HTMLVideoElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const signStore = useSignStore();
+
+type PredictionResult = {
+  prediction: string
+  confidence: number
+  allProbabilities: Array<{ label: string; score: number }>
+}
+
+function mirrorX(coords: number[]): number[] {
+  const out = coords.slice()
+  for (let i = 0; i < out.length; i += 3) {
+    out[i] = 1 - out[i]!
+  }
+  return out
+}
+
+function handlePredictionResult(res: string | PredictionResult) {
+  if (typeof res === 'string') {
+    systemStatus.value = res
+    return
+  }
+
+  if (res.prediction !== '辨識中...') {
+    signStore.updateSign(res.prediction)
+    systemStatus.value = `偵測到：${res.prediction} (${(res.confidence * 100).toFixed(0)}%)`
+  } else {
+    systemStatus.value = '動作分析中...'
+  }
+}
 
 let workerProxy: Comlink.Remote<AIWorkerType> | null = null
 let workerInstance: Worker | null = null
@@ -113,7 +137,7 @@ const initSystem = async () => {
       numHands: 2
     })
 
-    systemStatus.value = '系統就緒'
+    systemStatus.value = '系統就緒，請開始比手語！'
     return true
   } catch (error: any) {
     console.error(error)
@@ -141,7 +165,7 @@ const detectFrame = () => {
 
     ctx?.clearRect(0, 0, canvasRef.value.width, canvasRef.value.height)
 
-    // 準備這一影格的資料
+    // 準備這一影格的資料，Worker 會在背景收集 30 幀。
     const leftHand = new Array(63).fill(0)
     const rightHand = new Array(63).fill(0)
 
@@ -149,32 +173,23 @@ const detectFrame = () => {
       for (let i = 0; i < results.landmarks.length; i++) {
         const handInfo = results.handedness[i]?.[0]
         const label = handInfo?.categoryName || handInfo?.label
-        const coords = results.landmarks[i].flatMap((lm: any) => [lm.x, lm.y, lm.z])
+        let coords = results.landmarks[i].flatMap((lm: any) => [lm.x, lm.y, lm.z])
 
-        if (label === 'Left' || label === 'left') {
-          coords.forEach((val: number, idx: number) => leftHand[idx] = val)
-        } else {
-          coords.forEach((val: number, idx: number) => rightHand[idx] = val)
+        if (label === 'Right' || label === 'right') {
+          coords = mirrorX(coords)
         }
+
+        coords.forEach((val: number, idx: number) => leftHand[idx] = val)
       }
     }
 
-    // 更新緩衝區
     const currentFrameData = [...leftHand, ...rightHand]
-    frameBuffer.push(currentFrameData)
 
-    // 保持緩衝區只有 30 幀
-    if (frameBuffer.length > SEQUENCE_LENGTH) {
-      frameBuffer.shift()
-    }
-
-    // 湊滿 30 幀就送去推論 (30 * 126 = 3780)
-    if (frameBuffer.length === SEQUENCE_LENGTH && !isPredicting && workerProxy) {
+    if (!isPredicting && workerProxy) {
       isPredicting = true
-      const flattenedData = frameBuffer.flat() // 攤平成 3780 個數字
 
-      workerProxy.predict(flattenedData).then((res) => {
-        signStore.updateSign(res)
+      workerProxy.predict(currentFrameData).then((res) => {
+        handlePredictionResult(res)
         isPredicting = false
       }).catch((err) => {
         console.error("預測失敗:", err)

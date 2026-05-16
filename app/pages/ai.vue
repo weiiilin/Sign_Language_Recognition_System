@@ -12,6 +12,16 @@
 
     <div class="status-panel">
       <h2 v-if="signStore.isModelLoaded">辨識結果: <span class="result">{{ signStore.currentSign }}</span></h2>
+      <div v-if="inferenceLogs.length > 0" class="log-container">
+        <h3>實時分析 (Confidence)</h3>
+        <div v-for="(item, idx) in inferenceLogs" :key="idx" class="log-item">
+          <span class="log-label">{{ item.label }}:</span>
+          <div class="log-bar-bg">
+            <div class="log-bar-fill" :style="{ width: (item.score * 100) + '%' }"></div>
+          </div>
+          <span class="log-percent">{{ (item.score * 100).toFixed(1) }}%</span>
+        </div>
+      </div>
       <p class="status-text">{{ systemStatus }}</p>
       <div v-if="!signStore.isModelLoaded" class="loader">正在下載模型 (約 5-20MB)...</div>
       <p v-if="signStore.errorMsg" class="error">{{ signStore.errorMsg }}</p>
@@ -24,14 +34,21 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useSignStore } from '~/../stores/signStore'
 import * as Comlink from 'comlink'
 import type { AIWorkerType } from '~/../workers/inference.worker'
+const framesBuffer = ref<number[][]>([])
+const isCollecting = ref(false)
 
-// --- 1. 全域變數與緩衝區設定 ---
-const SEQUENCE_LENGTH = 30; // 模型要 30 幀 (30 * 126 = 3780)
-let frameBuffer: number[][] = []; // 用來存最近 30 幀的資料
+function mirrorX(coords: number[]): number[] {
+  const out = coords.slice();
+  for (let i = 0; i < out.length; i += 3) {
+    out[i] = 1 - out[i]!;
+  }
+  return out;
+}
 
 const videoRef = ref<HTMLVideoElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const signStore = useSignStore();
+const inferenceLogs = ref<{ label: string, score: number }[]>([]);
 
 let workerProxy: Comlink.Remote<AIWorkerType> | null = null
 let workerInstance: Worker | null = null
@@ -42,7 +59,7 @@ const systemStatus = ref('等待啟動...')
 const isStarting = ref(false)
 let isPredicting = false
 
-// --- 2. 相機權限 ---
+// --- 1. 相機權限 ---
 const requestCameraAccess = async () => {
   try {
     systemStatus.value = '請求鏡頭權限中...'
@@ -59,7 +76,7 @@ const requestCameraAccess = async () => {
   }
 }
 
-// --- 3. 初始化 Worker & MediaPipe ---
+// --- 2. 初始化 Worker & MediaPipe ---
 const initSystem = async () => {
   try {
     systemStatus.value = '載入推論引擎中...'
@@ -89,7 +106,7 @@ const initSystem = async () => {
       numHands: 2
     })
 
-    systemStatus.value = '系統就緒'
+    systemStatus.value = '系統就緒，請開始比手語！'
     return true
   } catch (error: any) {
     console.error(error)
@@ -98,7 +115,7 @@ const initSystem = async () => {
   }
 }
 
-// --- 4. 核心偵測與辨識邏輯 ---
+// --- 3. 核心偵測與辨識邏輯 ---
 const detectFrame = () => {
   if (!videoRef.value || !canvasRef.value || !handLandmarker) return
   const ctx = canvasRef.value.getContext('2d')
@@ -117,48 +134,80 @@ const detectFrame = () => {
 
     ctx?.clearRect(0, 0, canvasRef.value.width, canvasRef.value.height)
 
-    // 準備這一影格的資料
+    // 準備這一影格的資料 (固定為 63 + 63 = 126 點)
     const leftHand = new Array(63).fill(0)
     const rightHand = new Array(63).fill(0)
 
     if (results.landmarks && results.landmarks.length > 0) {
       for (let i = 0; i < results.landmarks.length; i++) {
         const handInfo = results.handedness[i]?.[0]
-        const label = handInfo?.categoryName || handInfo?.label
-        const coords = results.landmarks[i].flatMap((lm: any) => [lm.x, lm.y, lm.z])
+        let label = handInfo?.categoryName || handInfo?.label // 取得 Left 或 Right
+        console.log(`偵測到 ${label} 手`)
+        const handCount = results.landmarks.length;
 
-        if (label === 'Left' || label === 'left') {
-          coords.forEach((val: number, idx: number) => leftHand[idx] = val)
-        } else {
-          coords.forEach((val: number, idx: number) => rightHand[idx] = val)
-        }
+        // 1. 取得原始座標並進行 X 軸翻轉
+        // 我們將每個點的 x 座標用 (1.0 - x) 翻轉，這樣模型看到的左右就跟畫面上看到的一致
+        let coords = results.landmarks[i].flatMap((lm: any) => [
+         lm.x, // 這裡進行翻轉
+          lm.y,
+          lm.z
+        ]);
+        
+     if (label === 'Right') {
+         coords = mirrorX(coords);
+      }
+
+  coords.forEach((val:number, idx:number) => leftHand[idx] = val);
+        // // 對調完之後，再放入對應的陣列
+        // if (label === 'Left') {
+        //   coords.forEach((val: number, idx: number) => leftHand[idx] = val)
+        // } else {
+        //   coords.forEach((val: number, idx: number) => rightHand[idx] = val);
+        //   // coords.forEach((val:number, idx:number) => leftHand[idx] = val);
+        // }
       }
     }
 
-    // 更新緩衝區
+    // 將這一幀的 126 個點合併
+
     const currentFrameData = [...leftHand, ...rightHand]
-    frameBuffer.push(currentFrameData)
 
-    // 保持緩衝區只有 30 幀
-    if (frameBuffer.length > SEQUENCE_LENGTH) {
-      frameBuffer.shift()
+    if (framesBuffer.value.length >= 30) {
+      const frames = [...framesBuffer.value]
+      framesBuffer.value = []  // 先清空，不阻塞下一輪收集
+
+      if (workerProxy) {
+        // @ts-ignore
+        workerProxy.predict(frames).then((res: any) => {
+          if (res && typeof res === 'object') {
+            inferenceLogs.value = res.allProbabilities.slice(0, 3)
+            signStore.updateSign(res.prediction)
+            systemStatus.value = `偵測到：${res.prediction} (${(res.confidence * 100).toFixed(0)}%)`
+          }
+        })
+      }
     }
-
-    // 湊滿 30 幀就送去推論 (30 * 126 = 3780)
-    if (frameBuffer.length === SEQUENCE_LENGTH && !isPredicting && workerProxy) {
+    if (!isPredicting && workerProxy) {
       isPredicting = true
-      const flattenedData = frameBuffer.flat() // 攤平成 3780 個數字
 
-      workerProxy.predict(flattenedData).then((res) => {
-        signStore.updateSign(res)
-        isPredicting = false
-      }).catch((err) => {
-        console.error("預測失敗:", err)
-        isPredicting = false
-      })
+      workerProxy.predict(currentFrameData).then((res: any) => {
+        if (res && typeof res === 'object') {
+          // 更新 UI 上的機率條 (取前 3 名即可) 
+          inferenceLogs.value = res.allProbabilities.slice(0, 3);
+
+          // 更新原本的 store 邏輯
+          if (res.prediction !== '辨識中...') {
+            signStore.updateSign(res.prediction);
+            systemStatus.value = `偵測到：${res.prediction} (${(res.confidence * 100).toFixed(0)}%)`;
+          } else {
+            systemStatus.value = '動作分析中...';
+          }
+        }
+        isPredicting = false;
+      });
     }
 
-    // 繪製骨架點 (方便觀察是否有偵測到手)
+    // 繪製骨架點 (方便觀察)
     if (results.landmarks) {
       ctx!.fillStyle = '#00FF00'
       for (const handLandmarks of results.landmarks) {
@@ -176,7 +225,7 @@ const detectFrame = () => {
   renderLoop()
 }
 
-// --- 5. 啟動與生命週期 ---
+// --- 4. 啟動與生命週期 ---
 const startSystem = async () => {
   if (isStarting.value) return
   isStarting.value = true
@@ -208,6 +257,48 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.log-container {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 10px;
+  border-radius: 8px;
+  margin: 10px auto;
+  max-width: 300px;
+  text-align: left;
+}
+
+.log-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+  font-size: 0.9em;
+}
+
+.log-label {
+  width: 60px;
+  font-weight: bold;
+}
+
+.log-bar-bg {
+  flex: 1;
+  background: #ddd;
+  height: 10px;
+  margin: 0 10px;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.log-bar-fill {
+  background: #2563eb;
+  height: 100%;
+  transition: width 0.1s ease-out;
+}
+
+.log-percent {
+  width: 45px;
+  text-align: right;
+  font-family: monospace;
+}
+
 .container {
   text-align: center;
   padding: 20px;
