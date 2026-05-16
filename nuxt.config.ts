@@ -36,6 +36,7 @@ export default defineNuxtConfig({
     },
     workbox: {
       globPatterns: ['**/*.{js,css,html,png,svg,wasm,onnx,onnx.data}'],
+      maximumFileSizeToCacheInBytes: 30 * 1024 * 1024,
 
       runtimeCaching: [
         {

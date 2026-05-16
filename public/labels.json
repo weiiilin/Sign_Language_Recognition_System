@@ -1,13 +1,17 @@
 {
   "classes": [
+    "complete",
     "eat",
     "me",
+    "notyet",
     "yon",
     "you"
   ],
   "display_names": [
+    "完成",
     "吃",
     "我",
+    "還沒有",
     "有沒有",
     "你"
   ],
@@ -15,7 +19,7 @@
     30,
     126
   ],
-  "flattened_input_dim": 3780,
+  "flattened_input_dim": 126,
   "model_file": "model.onnx",
   "normalization": "embedded_in_model"
 }
