@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "nuxt build",
-    "dev": "nuxt dev --host 0.0.0.0",
+    "dev": "nuxt dev --host 0.0.0.0 ",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
@@ -23,7 +23,9 @@
     "vue-router": "^5.0.4"
   },
   "devDependencies": {
+    "@nuxtjs/tailwindcss": "^6.14.0",
     "@vitejs/plugin-basic-ssl": "^2.1.0",
+    "tailwindcss": "^3.4.19",
     "typescript": "^6.0.2",
     "vue-tsc": "^3.2.6"
   }

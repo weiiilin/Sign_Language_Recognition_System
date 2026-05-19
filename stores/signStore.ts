@@ -1,14 +1,27 @@
-// @ts-ignore
+// stores/signStore.ts
 import { defineStore } from 'pinia'
 
 export const useSignStore = defineStore('sign', {
   state: () => ({
+    // --- 原有的 AI 狀態 ---
     currentSign: '等待辨識中...' as string,
     isModelLoaded: false as boolean,
     fps: 0 as number,
-    errorMsg: '' as string
+    errorMsg: '' as string,
+
+    // --- 📥 新增的全域 UI 控制狀態 ---
+    showSetting: false as boolean,
+    showDetail: false as boolean,
+
+    // 詳情彈窗專用的資料緩衝區
+    detailData: {
+      word: '尚未辨識' as string,
+      breakdown: '依辨識結果顯示拆解' as string,
+      detail: '手型：待補<br />位置：待補<br />動作：待補' as string
+    }
   }),
   actions: {
+    // --- 原有的 AI Actions (一字不差保留) ---
     updateSign(this: any, sign: string) {
       this.currentSign = sign
     },
@@ -17,6 +30,30 @@ export const useSignStore = defineStore('sign', {
     },
     setError(this: any, msg: string) {
       this.errorMsg = msg
+    },
+
+    // --- 📥 新增的全域 UI Actions ---
+    openSetting(this: any) {
+      this.showSetting = true
+    },
+    closeSetting(this: any) {
+      this.showSetting = false
+    },
+    openDetail(this: any, payload?: { word: string; breakdown?: string; detail?: string }) {
+      if (payload) {
+        this.detailData.word = payload.word
+        if (payload.breakdown) this.detailData.breakdown = payload.breakdown
+        if (payload.detail) this.detailData.detail = payload.detail
+      } else {
+        // 如果沒傳參數，預設抓取目前最新的 AI 辨識結果
+        this.detailData.word = this.currentSign || '尚未辨識'
+        this.detailData.breakdown = '依辨識結果顯示拆解'
+        this.detailData.detail = '手型：待補<br />位置：待補<br />動作：待補'
+      }
+      this.showDetail = true
+    },
+    closeDetail(this: any) {
+      this.showDetail = false
     }
   }
 })

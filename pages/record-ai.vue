@@ -1,55 +1,71 @@
 <template>
-  <div class="container">
-    <h1>手語辨識系統</h1>
-    <button class="start-btn" :disabled="isStarting" @click="startSystem">
+  <main class="page max-w-2xl mx-auto flex flex-col justify-between min-h-screen pt-4 sm:pt-6 px-4 sm:px-6 pb-24">
+    <AppHeader>
+      <div class="logo text-center font-bold text-gray-800 flex-1">
+        即時手語辨識系統
+      </div>
+      <div class="w-12 h-12 flex-shrink-0"></div>
+    </AppHeader>
+
+    <section
+      class="camera-container w-full aspect-video bg-gray-900 rounded-3xl relative overflow-hidden shadow-lg border border-gray-200">
+      <video ref="videoRef" autoplay playsinline muted class="camera-media"></video>
+      <canvas ref="canvasRef" class="camera-media"></canvas>
+    </section>
+
+    <button
+      class="start-btn w-full max-w-sm mx-auto px-6 py-3.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-2xl shadow-md transition-all active:scale-[0.98] mt-4"
+      :disabled="isStarting" @click="startSystem">
       {{ isStarting ? '系統啟動中...' : '重新啟動系統' }}
     </button>
 
-    <div class="video-wrapper">
-      <video ref="videoRef" autoplay playsinline muted></video>
-      <canvas ref="canvasRef"></canvas>
+    <div
+      class="pill my-3 px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full font-medium text-sm sm:text-base border border-blue-100 shadow-sm">
+      台灣手語 → 中文（繁體）
     </div>
 
-    <div class="status-panel">
-      <h2 v-if="signStore.isModelLoaded">辨識結果: <span class="result">{{ signStore.currentSign }}</span></h2>
-      <div v-if="inferenceLogs.length > 0" class="log-container">
-        <h3>實時分析 (Confidence)</h3>
-        <div v-for="(item, idx) in inferenceLogs" :key="idx" class="log-item">
-          <span class="log-label">{{ item.label }}:</span>
-          <div class="log-bar-bg">
-            <div class="log-bar-fill" :style="{ width: (item.score * 100) + '%' }"></div>
-          </div>
-          <span class="log-percent">{{ (item.score * 100).toFixed(1) }}%</span>
+    <div v-if="inferenceLogs.length > 0"
+      class="w-full max-w-md mx-auto bg-white/80 backdrop-blur p-4 rounded-2xl border border-gray-100 shadow-sm my-3">
+      <h3 class="text-sm font-bold text-gray-700 mb-2.5 flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+        實時 analysis (Confidence)
+      </h3>
+      <div v-for="(item, idx) in inferenceLogs" :key="idx" class="flex items-center gap-3 mb-2 last:mb-0 text-sm">
+        <span class="w-16 font-semibold text-gray-600 truncate">{{ item.label }}:</span>
+        <div class="flex-1 bg-gray-100 h-2.5 rounded-full overflow-hidden">
+          <div class="bg-blue-600 h-full rounded-full transition-all duration-100 ease-out"
+            :style="{ width: (item.score * 100) + '%' }"></div>
         </div>
+        <span class="w-12 text-right font-mono text-gray-500 text-xs">{{ (item.score * 100).toFixed(1) }}%</span>
       </div>
-      <p class="status-text">{{ systemStatus }}</p>
-      <div v-if="!signStore.isModelLoaded" class="loader">正在下載模型 (約 5-20MB)...</div>
-      <p v-if="signStore.errorMsg" class="error">{{ signStore.errorMsg }}</p>
     </div>
-  </div>
+
+    <section
+      class="w-full bg-white border border-gray-100 p-5 rounded-2xl shadow-sm cursor-pointer hover:shadow-md transition-shadow mt-4 flex flex-col gap-1"
+      @click="signStore.openDetail()">
+      <p class="text-lg font-bold text-gray-800">
+        辨識結果：<span class="text-blue-600">{{ signStore.currentSign || '尚未辨識' }}</span>
+      </p>
+      <span class="text-xs text-gray-400 font-medium tracking-wide flex items-center gap-1">
+        ⚙️ {{ systemStatus }}
+      </span>
+    </section>
+  </main>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useSignStore } from '~/../stores/signStore'
+import { useSignStore } from '@/stores/signStore'
 import * as Comlink from 'comlink'
-import type { AIWorkerType } from '~/../workers/inference.worker'
-const framesBuffer = ref<number[][]>([])
-const isCollecting = ref(false)
-
-function mirrorX(coords: number[]): number[] {
-  const out = coords.slice();
-  for (let i = 0; i < out.length; i += 3) {
-    out[i] = 1 - out[i]!;
-  }
-  return out;
-}
+import type { AIWorkerType } from '@/workers/inference.worker'
+import AppHeader from '@/components/header.vue'
 
 const videoRef = ref<HTMLVideoElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
-const signStore = useSignStore();
+const signStore = useSignStore()
 const inferenceLogs = ref<{ label: string, score: number }[]>([]);
 
+const framesBuffer = ref<number[][]>([])
 let workerProxy: Comlink.Remote<AIWorkerType> | null = null
 let workerInstance: Worker | null = null
 let handLandmarker: any = null
@@ -59,7 +75,6 @@ const systemStatus = ref('等待啟動...')
 const isStarting = ref(false)
 let isPredicting = false
 
-// --- 1. 相機權限 ---
 const requestCameraAccess = async () => {
   try {
     systemStatus.value = '請求鏡頭權限中...'
@@ -70,19 +85,22 @@ const requestCameraAccess = async () => {
     if (videoRef.value) {
       videoRef.value.srcObject = stream
       await new Promise((r) => videoRef.value!.onloadedmetadata = r)
+      if (canvasRef.value) {
+        canvasRef.value.width = videoRef.value.videoWidth
+        canvasRef.value.height = videoRef.value.videoHeight
+      }
     }
   } catch (err) {
     throw new Error('無法存取相機，請檢查權限設定。')
   }
 }
 
-// --- 2. 初始化 Worker & MediaPipe ---
 const initSystem = async () => {
   try {
     systemStatus.value = '載入推論引擎中...'
     if (!workerInstance) {
       workerInstance = new Worker(
-        new URL('~/../workers/inference.worker.ts', import.meta.url),
+        new URL('@/workers/inference.worker.ts', import.meta.url),
         { type: 'module' }
       )
       workerProxy = Comlink.wrap<AIWorkerType>(workerInstance)
@@ -115,7 +133,6 @@ const initSystem = async () => {
   }
 }
 
-// --- 3. 核心偵測與辨識邏輯 ---
 const detectFrame = () => {
   if (!videoRef.value || !canvasRef.value || !handLandmarker) return
   const ctx = canvasRef.value.getContext('2d')
@@ -123,58 +140,38 @@ const detectFrame = () => {
   const renderLoop = async () => {
     if (!videoRef.value || !canvasRef.value) return
 
-    // 同步畫布尺寸
-    if (canvasRef.value.width !== videoRef.value.videoWidth) {
-      canvasRef.value.width = videoRef.value.videoWidth
-      canvasRef.value.height = videoRef.value.videoHeight
-    }
-
     const startTimeMs = performance.now()
     const results = handLandmarker.detectForVideo(videoRef.value, startTimeMs)
 
     ctx?.clearRect(0, 0, canvasRef.value.width, canvasRef.value.height)
 
-    // 準備這一影格的資料 (固定為 63 + 63 = 126 點)
     const leftHand = new Array(63).fill(0)
     const rightHand = new Array(63).fill(0)
 
     if (results.landmarks && results.landmarks.length > 0) {
       for (let i = 0; i < results.landmarks.length; i++) {
         const handInfo = results.handedness[i]?.[0]
-        let label = handInfo?.categoryName || handInfo?.label // 取得 Left 或 Right
-        console.log(`偵測到 ${label} 手`)
-        const handCount = results.landmarks.length;
+        const label = handInfo?.categoryName || handInfo?.label
 
-        // 1. 取得原始座標並進行 X 軸翻轉
-        // 我們將每個點的 x 座標用 (1.0 - x) 翻轉，這樣模型看到的左右就跟畫面上看到的一致
-        let coords = results.landmarks[i].flatMap((lm: any) => [
-         lm.x, // 這裡進行翻轉
+        const coords = results.landmarks[i].flatMap((lm: any) => [
+          lm.x,
           lm.y,
           lm.z
         ]);
-        
-     if (label === 'Right') {
-         coords = mirrorX(coords);
-      }
 
-  coords.forEach((val:number, idx:number) => leftHand[idx] = val);
-        // // 對調完之後，再放入對應的陣列
-        // if (label === 'Left') {
-        //   coords.forEach((val: number, idx: number) => leftHand[idx] = val)
-        // } else {
-        //   coords.forEach((val: number, idx: number) => rightHand[idx] = val);
-        //   // coords.forEach((val:number, idx:number) => leftHand[idx] = val);
-        // }
+        if (label === 'Left' || label === 'left') {
+          coords.forEach((val: number, idx: number) => leftHand[idx] = val)
+        } else if (label === 'Right' || label === 'right') {
+          coords.forEach((val: number, idx: number) => rightHand[idx] = val)
+        }
       }
     }
-
-    // 將這一幀的 126 個點合併
 
     const currentFrameData = [...leftHand, ...rightHand]
 
     if (framesBuffer.value.length >= 30) {
       const frames = [...framesBuffer.value]
-      framesBuffer.value = []  // 先清空，不阻塞下一輪收集
+      framesBuffer.value = []
 
       if (workerProxy) {
         // @ts-ignore
@@ -187,15 +184,14 @@ const detectFrame = () => {
         })
       }
     }
+
     if (!isPredicting && workerProxy) {
       isPredicting = true
 
       workerProxy.predict(currentFrameData).then((res: any) => {
         if (res && typeof res === 'object') {
-          // 更新 UI 上的機率條 (取前 3 名即可) 
           inferenceLogs.value = res.allProbabilities.slice(0, 3);
 
-          // 更新原本的 store 邏輯
           if (res.prediction !== '辨識中...') {
             signStore.updateSign(res.prediction);
             systemStatus.value = `偵測到：${res.prediction} (${(res.confidence * 100).toFixed(0)}%)`;
@@ -204,10 +200,12 @@ const detectFrame = () => {
           }
         }
         isPredicting = false;
+      }).catch((err) => {
+        console.error("預測失敗:", err)
+        isPredicting = false
       });
     }
 
-    // 繪製骨架點 (方便觀察)
     if (results.landmarks) {
       ctx!.fillStyle = '#00FF00'
       for (const handLandmarks of results.landmarks) {
@@ -225,11 +223,9 @@ const detectFrame = () => {
   renderLoop()
 }
 
-// --- 4. 啟動與生命週期 ---
 const startSystem = async () => {
   if (isStarting.value) return
   isStarting.value = true
-
   try {
     await requestCameraAccess()
     const ready = await initSystem()
@@ -257,104 +253,12 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.log-container {
-  background: rgba(0, 0, 0, 0.05);
-  padding: 10px;
-  border-radius: 8px;
-  margin: 10px auto;
-  max-width: 300px;
-  text-align: left;
-}
-
-.log-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 5px;
-  font-size: 0.9em;
-}
-
-.log-label {
-  width: 60px;
-  font-weight: bold;
-}
-
-.log-bar-bg {
-  flex: 1;
-  background: #ddd;
-  height: 10px;
-  margin: 0 10px;
-  border-radius: 5px;
-  overflow: hidden;
-}
-
-.log-bar-fill {
-  background: #2563eb;
-  height: 100%;
-  transition: width 0.1s ease-out;
-}
-
-.log-percent {
-  width: 45px;
-  text-align: right;
-  font-family: monospace;
-}
-
-.container {
-  text-align: center;
-  padding: 20px;
-}
-
-.video-wrapper {
-  position: relative;
-  display: inline-block;
-  background: #000;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-video {
-  width: 640px;
-  height: 480px;
-  transform: scaleX(-1);
-  display: block;
-}
-
-canvas {
+.camera-media {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 640px;
-  height: 480px;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   transform: scaleX(-1);
-}
-
-.status-panel {
-  margin-top: 20px;
-  min-height: 100px;
-}
-
-.result {
-  color: #2563eb;
-  font-size: 1.5em;
-  text-decoration: underline;
-}
-
-.error {
-  color: #ef4444;
-  font-weight: bold;
-}
-
-.start-btn {
-  padding: 12px 24px;
-  background: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  margin-bottom: 20px;
-}
-
-.start-btn:disabled {
-  background: #94a3b8;
 }
 </style>

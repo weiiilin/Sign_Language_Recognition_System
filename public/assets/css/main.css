@@ -1,0 +1,11 @@
+/* 專案資料夾/public/assets/css/main.css */
+
+:root {
+  --app-font-size: 16px;
+}
+
+body {
+  font-size: var(--app-font-size);
+  background-color: #f6f7fb;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}

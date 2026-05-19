@@ -139,11 +139,13 @@ const AIWorker = {
         return '辨識中...';
       }
 
+      const prediction = safeLabels[maxIndex] ?? '未知類別';
+
       // 測試階段可以把機率印出來看，方便你抓感覺
-      console.log(`預測結果: ${labels[maxIndex]}, 信心度: ${(maxScore * 100).toFixed(1)}%`);
+      console.log(`預測結果: ${prediction}, 信心度: ${(maxScore * 100).toFixed(1)}%`);
 
       return {
-        prediction: maxScore < 0.5 ? '辨識中...' : labels[maxIndex],
+        prediction,
         confidence: maxScore,
         allProbabilities: probMap // 包含排序後的清單
       };

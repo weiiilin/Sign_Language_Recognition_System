@@ -1,17 +1,20 @@
+import basicSsl from '@vitejs/plugin-basic-ssl'
 export default defineNuxtConfig({
   future: { compatibilityVersion: 4 },
   compatibilityDate: '2026-04-05',
-  modules: ['@vite-pwa/nuxt', '@pinia/nuxt'],
+  modules: ['@vite-pwa/nuxt', '@pinia/nuxt', '@nuxtjs/tailwindcss'],
   devServer: {
     host: '0.0.0.0',
-    port: 3001,
+    port: 3000,
+  //  https: true,
   },
+  css: ['~/public/assets/css/main.css'],
   vite: {
     server: {
       allowedHosts: true,
     },
     plugins: [
-      // require('@vitejs/plugin-basic-ssl')() // 使用 ngrok 時請關閉本地 SSL，交由 ngrok 處理 HTTPS
+      // basicSsl(),
     ],
     optimizeDeps: {
       include: [
@@ -36,6 +39,7 @@ export default defineNuxtConfig({
     },
     workbox: {
       globPatterns: ['**/*.{js,css,html,png,svg,wasm,onnx,onnx.data}'],
+      maximumFileSizeToCacheInBytes: 30 * 1024 * 1024,
 
       runtimeCaching: [
         {
